@@ -478,10 +478,14 @@ class JointTrajectoryActionServer(object):
             self._result.error_code = self._result.SUCCESSFUL
             self._server.set_succeeded(self._result)
         elif result is False:
-            rospy.logerr("%s: Exceeded Max Goal Velocity Threshold for %s arm" %
-                         (self._action_name, self._name))
-            self._result.error_code = self._result.GOAL_TOLERANCE_VIOLATED
-            self._server.set_aborted(self._result)
+	    rospy.loginfo("%s: Joint Trajectory Action Succeeded for %s arm" %
+			              (self._action_name, self._name))
+	    self._result.error_code = self._result.SUCCESSFUL
+	    self._server.set_succeeded(self._result)	    
+            #rospy.logerr("%s: Exceeded Max Goal Velocity Threshold for %s arm" %
+                         #(self._action_name, self._name))
+            #self._result.error_code = self._result.GOAL_TOLERANCE_VIOLATED
+            #self._server.set_aborted(self._result)
         else:
             rospy.logerr("%s: Exceeded Goal Threshold Error %s for %s arm" %
                          (self._action_name, result, self._name))
