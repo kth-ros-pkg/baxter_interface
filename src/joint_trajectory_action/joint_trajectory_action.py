@@ -37,7 +37,7 @@ import numpy as np
 import bezier
 
 import rospy
-
+from std_srvs.srv import Empty, EmptyResponse
 import actionlib
 
 from control_msgs.msg import (
@@ -72,6 +72,8 @@ class JointTrajectoryActionServer(object):
         self._limb = baxter_interface.Limb(limb)
         self._enable = baxter_interface.RobotEnable()
         self._name = limb
+        self._paused = False
+        self._pauseService = rospy.Service('pause_joint_trajectory_server_' + limb, Empty, self._pause_cb)
         self._cuff = baxter_interface.DigitalIO('%s_lower_cuff' % (limb,))
         self._cuff.state_changed.connect(self._cuff_cb)
         # Verify joint control mode
@@ -130,6 +132,11 @@ class JointTrajectoryActionServer(object):
 
     def _cuff_cb(self, value):
         self._cuff_state = value
+
+    def _pause_cb(self, req):
+        self._paused = not self._paused
+        res = EmptyResponse()
+        return res
 
     def _get_trajectory_parameters(self, joint_names, goal):
         # For each input trajectory, if path, goal, or goal_time tolerances
@@ -232,7 +239,7 @@ class JointTrajectoryActionServer(object):
             while (not self._server.is_new_goal_available() and self._alive
                    and self.robot_is_enabled()):
                 self._limb.set_joint_velocities(cmd)
-                if self._cuff_state:
+                if self._cuff_state or self._paused:
                     self._limb.exit_control_mode()
                     break
                 rospy.sleep(1.0 / self._control_rate)
@@ -253,7 +260,7 @@ class JointTrajectoryActionServer(object):
                     pnt.time_from_start = rospy.Duration(rospy.get_time() - start_time)
                     ff_pnt = self._reorder_joints_ff_cmd(joint_names, pnt)
                     self._pub_ff_cmd.publish(ff_pnt)
-                if self._cuff_state:
+                if self._cuff_state or self._paused:
                     self._limb.exit_control_mode()
                     break
                 rospy.sleep(1.0 / self._control_rate)
@@ -481,7 +488,7 @@ class JointTrajectoryActionServer(object):
 	    rospy.loginfo("%s: Joint Trajectory Action Succeeded for %s arm" %
 			              (self._action_name, self._name))
 	    self._result.error_code = self._result.SUCCESSFUL
-	    self._server.set_succeeded(self._result)	    
+	    self._server.set_succeeded(self._result)
             #rospy.logerr("%s: Exceeded Max Goal Velocity Threshold for %s arm" %
                          #(self._action_name, self._name))
             #self._result.error_code = self._result.GOAL_TOLERANCE_VIOLATED
