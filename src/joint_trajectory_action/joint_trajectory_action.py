@@ -38,6 +38,7 @@ import bezier
 
 import rospy
 from std_srvs.srv import Empty, EmptyResponse
+from baxter_interface.srv import ControlMode, ControlModeResponse
 import actionlib
 
 from control_msgs.msg import (
@@ -74,6 +75,7 @@ class JointTrajectoryActionServer(object):
         self._name = limb
         self._paused = False
         self._pauseService = rospy.Service('pause_joint_trajectory_server_' + limb, Empty, self._pause_cb)
+        self._modeService = rospy.Service('/apc/hacks/set_control_mode_' + limb, ControlMode, self._set_control_mode)
         self._cuff = baxter_interface.DigitalIO('%s_lower_cuff' % (limb,))
         self._cuff.state_changed.connect(self._cuff_cb)
         # Verify joint control mode
@@ -122,6 +124,14 @@ class JointTrajectoryActionServer(object):
             JointTrajectoryPoint,
             tcp_nodelay=True,
             queue_size=1)
+
+    def _set_control_mode(self, req):
+        if req.mode == 'position' or req.mode == 'position_w_id':
+            self._mode = req.mode
+            rospy.loginfo('Joint trajectory action server for the %s arm has switched to %s mode' % (self._name, self._mode))
+        else:
+            rospy.logwarn('Joint trajectory action server for the %s arm received an invalid mode: %s' % (self._name, req.mode))
+        return ControlModeResponse()
 
     def robot_is_enabled(self):
         return self._enable.state().enabled
@@ -256,7 +266,7 @@ class JointTrajectoryActionServer(object):
                    and self.robot_is_enabled()):
                 self._limb.set_joint_positions(joint_angles, raw=raw_pos_mode)
                 # zero inverse dynamics feedforward command
-                if self._mode == 'position_w_id':
+                if raw_pos_mode:
                     pnt.time_from_start = rospy.Duration(rospy.get_time() - start_time)
                     ff_pnt = self._reorder_joints_ff_cmd(joint_names, pnt)
                     self._pub_ff_cmd.publish(ff_pnt)

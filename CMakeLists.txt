@@ -12,6 +12,7 @@ find_package(catkin
   trajectory_msgs
   dynamic_reconfigure
   baxter_core_msgs
+  message_generation
 )
 
 catkin_python_setup()
@@ -22,6 +23,16 @@ generate_dynamic_reconfigure_options(
   cfg/PositionFFJointTrajectoryActionServer.cfg
   cfg/GripperActionServer.cfg
   cfg/HeadActionServer.cfg
+)
+
+add_service_files(
+  FILES
+  ControlMode.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
 )
 
 add_dependencies(${PROJECT_NAME}_gencfg baxter_core_msgs_generate_messages_py)
@@ -36,6 +47,7 @@ catkin_package(
   trajectory_msgs
   dynamic_reconfigure
   baxter_core_msgs
+  message_runtime
 )
 
 install(
