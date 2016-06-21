@@ -266,7 +266,7 @@ class JointTrajectoryActionServer(object):
                    and self.robot_is_enabled()):
                 self._limb.set_joint_positions(joint_angles, raw=raw_pos_mode)
                 # zero inverse dynamics feedforward command
-                if self._mode == 'position_w_id':
+                if raw_pos_mode:
                     pnt.time_from_start = rospy.Duration(rospy.get_time() - start_time)
                     ff_pnt = self._reorder_joints_ff_cmd(joint_names, pnt)
                     self._pub_ff_cmd.publish(ff_pnt)
